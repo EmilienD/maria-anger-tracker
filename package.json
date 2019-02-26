@@ -1,0 +1,17 @@
+{
+  "name": "maria-anger-management",
+  "version": "1.0.0",
+  "description": "Helping the company track when maria get angry",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node index.js"
+  },
+  "author": "Emilien Durieu",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^4.16.4",
+    "socket.io": "^2.2.0",
+    "winston": "^3.2.1"
+  }
+}

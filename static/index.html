@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <title>Maria's anger tracker</title>
+  <style>
+    body {
+      font-family: 'Franklin Gothic Medium', 'Arial Narrow', Arial, sans-serif;
+    }
+
+    .transparent {
+      opacity: 0;
+    }
+
+    .timecount {
+      color: tomato;
+    }
+
+    q {
+      font-style: italic;
+    }
+
+    #mainTitle {
+      transition: all linear 0.3s;
+    }
+
+    #reasonContainer {
+      font-size: 1.2em;
+    }
+
+    #reasonInput {
+      min-height: 1em;
+    }
+
+    #reasonInput:focus {
+      outline: none;
+    }
+
+    .bad-person {
+      position: absolute;
+      bottom: 0;
+      display: flex;
+      align-items: center;
+      max-width: 50%;
+    }
+
+    #reasonPlaceholder {
+      color: #888888;
+    }
+
+    #submitConfessionButton {
+      margin: 1em;
+    }
+  </style>
+</head>
+
+<body>
+  <h1 class="transparent" id="mainTitle">It's been<br><span class="timecount" id="dayCount"></span><span class="timecount"
+      id="hourCount"></span><span class="timecount" id="minuteCount"></span>
+    <span class="timecount" id="secondCount"></span><br>since someone decided it was a good idea to make Maria angry.</h1>
+  <p class="transparent" id="reasonContainer">The stated reason is: <q id="reason"></q>.</p>
+  <p id="confessionForm" class="bad-person">
+    <span>I have been a bad person and made Maria angry because&nbsp;
+      <span id="reasonInput" contenteditable><em id="reasonPlaceholder">I am a terrible person</em>.</span></span>
+    <button id="submitConfessionButton">I am very sorry</button>
+  </p>
+</body>
+<script src="/socket.io/socket.io.js"></script>
+<script>
+  const SECOND_LENGTH = 1000
+  const MINUTE_LENGTH = SECOND_LENGTH * 60
+  const HOUR_LENGTH = MINUTE_LENGTH * 60
+  const DAY_LENGTH = HOUR_LENGTH * 24
+
+  var INTERVAL_REF = null
+
+  confessionForm.addEventListener('submit', submitConfession)
+  reasonPlaceholder.addEventListener('click', e => {
+    console.log('click', e.target.id)
+    e.stopPropagation();
+    e.target.remove()
+  })
+  submitConfessionButton.addEventListener('click', submitConfession)
+
+  fetch('/confessions', {
+    cache: "no-cache"
+  }).then(res => res.json()).then(updateConfession)
+
+  function updateConfession({
+    data
+  }) {
+    const latest = data.sort((a, b) => a.time - b.time).pop()
+    showCount(latest.time)
+    showReason(latest.reason)
+    mainTitle.classList.remove('transparent')
+    if (INTERVAL_REF) {
+      clearInterval(INTERVAL_REF)
+    }
+    INTERVAL_REF = setInterval(() => showCount(latest.time), 1000)
+  }
+
+  function showReason(currentReason) {
+    reason.innerText = currentReason
+    reasonContainer.classList.remove('transparent')
+  }
+
+  function showCount(startTime) {
+    const diff = new Date().getTime() - startTime
+
+    const dayCountNumber = Math.floor(diff / DAY_LENGTH)
+    dayCount.innerText = `${dayCountNumber} day${dayCountNumber !== 1 ? 's':''}, `
+
+    const hourCountNumber = Math.floor((diff % DAY_LENGTH) / HOUR_LENGTH)
+    hourCount.innerText = `${hourCountNumber} hour${hourCountNumber !== 1 ? 's':''}, `
+
+    const minuteCountNumber = Math.floor((diff % DAY_LENGTH % HOUR_LENGTH) / MINUTE_LENGTH)
+    minuteCount.innerText = `${minuteCountNumber} minute${minuteCountNumber !== 1 ? 's':''}`
+
+    const secondCountNumber = Math.floor((diff % DAY_LENGTH % HOUR_LENGTH % MINUTE_LENGTH) / SECOND_LENGTH)
+    secondCount.innerText = `and ${secondCountNumber} second${secondCountNumber !== 1 ? 's':''}`
+  }
+
+  function submitConfession(e) {
+    e.preventDefault()
+    console.log(reasonInput.innerText)
+    fetch('/confession', {
+      method: 'POST',
+      headers: {
+        "Content-Type": "application/json",
+      },
+      cache: "no-cache",
+      body: JSON.stringify({
+        reason: reasonInput.innerText
+      })
+    })
+  }
+
+  var socket = io();
+  socket.on('new-confession', updateConfession)
+</script>
+
+</html>
