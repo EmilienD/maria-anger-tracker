@@ -55,10 +55,15 @@
 </head>
 
 <body>
-  <h1 class="transparent" id="mainTitle">It's been<br><span class="timecount" id="dayCount"></span><span class="timecount"
-      id="hourCount"></span><span class="timecount" id="minuteCount"></span>
-    <span class="timecount" id="secondCount"></span><br>since someone decided it was a good idea to make Maria angry.</h1>
+  <h1 class="transparent" id="mainTitle">It's been<br><span class="timecount" id="dayCount"></span><span
+      class="timecount" id="hourCount"></span><span class="timecount" id="minuteCount"></span>
+    <span class="timecount" id="secondCount"></span><br>since someone decided it was a good idea to make Maria angry.
+  </h1>
   <p class="transparent" id="reasonContainer">The stated reason is: <q id="reason"></q>.</p>
+  <p class="transparent" id="highscoreContainer">Before the current time, the most we managed to last is <span
+      class="timecount" id="highscoreDayCount"></span><span class="timecount" id="highscoreHourCount"></span><span
+      class="timecount" id="highscoreMinuteCount"></span>
+    <span class="timecount" id="highscoreSecondCount"></span>.</p>
   <p id="confessionForm" class="bad-person">
     <span>I have been a bad person and made Maria angry because&nbsp;
       <span id="reasonInput" contenteditable><em id="reasonPlaceholder">I am a terrible person</em>.</span></span>
@@ -89,6 +94,7 @@
   function updateConfession({
     data
   }) {
+    showHighscore(data)
     const latest = data.sort((a, b) => a.time - b.time).pop()
     showCount(latest.time)
     showReason(latest.reason)
@@ -97,6 +103,40 @@
       clearInterval(INTERVAL_REF)
     }
     INTERVAL_REF = setInterval(() => showCount(latest.time), 1000)
+  }
+
+  function showHighscore(confessionArray) {
+    const {
+      duration: diff
+    } = confessionArray.sort((a, b) => a.time - b.time).reduce((acc, val) => {
+      if (!acc.previous) {
+        return {
+          previous: val,
+          duration: 0
+        }
+      }
+      const currentDuration = val.time - acc.previous.time
+      return {
+        previous: val,
+        duration: currentDuration > acc.duration ? currentDuration : acc.duration
+      }
+    }, {
+      previous: null,
+      duration: 0
+    })
+
+    const dayCountNumber = Math.floor(diff / DAY_LENGTH)
+    highscoreDayCount.innerText = `${dayCountNumber} day${dayCountNumber !== 1 ? 's':''}, `
+
+    const hourCountNumber = Math.floor((diff % DAY_LENGTH) / HOUR_LENGTH)
+    highscoreHourCount.innerText = `${hourCountNumber} hour${hourCountNumber !== 1 ? 's':''}, `
+
+    const minuteCountNumber = Math.floor((diff % DAY_LENGTH % HOUR_LENGTH) / MINUTE_LENGTH)
+    highscoreMinuteCount.innerText = `${minuteCountNumber} minute${minuteCountNumber !== 1 ? 's':''}`
+
+    const secondCountNumber = Math.floor((diff % DAY_LENGTH % HOUR_LENGTH % MINUTE_LENGTH) / SECOND_LENGTH)
+    highscoreSecondCount.innerText = `and ${secondCountNumber} second${secondCountNumber !== 1 ? 's':''}`
+    highscoreContainer.classList.remove('transparent')
   }
 
   function showReason(currentReason) {
